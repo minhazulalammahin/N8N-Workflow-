@@ -1,0 +1,207 @@
+{
+  "name": "mail reply agent",
+  "nodes": [
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "filters": {}
+      },
+      "type": "n8n-nodes-base.gmailTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -912,
+        48
+      ],
+      "id": "8aaf930e-ca65-4cdd-9ec8-b1a026097915",
+      "name": "Gmail Trigger",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "gAYHLjsjJBwJFyp9",
+          "name": "Gmail account 167"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "=define",
+        "text": "=Here is a new email:\n\nSubject: {{ $json.Subject }}\nFrom: {{ $json.From }}\nBody: {{ $json.snippet }}\n\nDecide if this email is important or not. \nIf important → Give message \"Important\" also explain why and write a reply. \nIf not important → output only \"Not important\".\n\nReplier Name will be : Suha\n\n",
+        "options": {
+          "systemMessage": "=You are an AI email assistant inside an n8n automation. \nYour task is to carefully analyze incoming emails. \nClassify each email into one of these categories: \n- Important \n- Promotional \n- Social \n- Update \n- Spam \n\nRules: \n1. Important emails are personal, work-related, client-related, or require a response/action. \n2. Promotional, social, updates, and spam emails are NOT important. \n3. If the email is important, summarize the reason it is important and generate a polite reply draft. \n4. If the email is not important, just output: \"Not important\".\n5. Always keep responses short, clear, and professional. \n\n\n\n"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.2,
+      "position": [
+        -688,
+        48
+      ],
+      "id": "747e0897-a894-46c0-bf79-5c73aa840c38",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        -768,
+        256
+      ],
+      "id": "615d94a8-4add-47dd-b88a-752cf30936ab",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "0bukAEDwVSFgerpw",
+          "name": "Google Gemini(PaLM) Api account 153"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Input: text from AI agent\nconst text = $json[\"output\"];  // replace with your field name\n\n// Extract email category (Important / Not important)\n// This regex matches either plain \"Important\" or \"**Important**\"\nconst categoryMatch = text.match(/\\**\\s*(Important|Not important)\\s*\\**/i);\nconst category = categoryMatch ? categoryMatch[1] : \"\";\n\n// Extract subject\nconst subjectMatch = text.match(/Subject:\\s*(.*)/i);\nconst subject = subjectMatch ? subjectMatch[1].trim() : \"\";\n\n// Extract reply body (everything after Subject line)\nlet replyBody = \"\";\nif (subjectMatch) {\n  const startIndex = text.indexOf(subjectMatch[0]) + subjectMatch[0].length;\n  replyBody = text.substring(startIndex).trim();\n}\n\nreturn {\n  category,\n  subject,\n  replyBody\n};\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -336,
+        48
+      ],
+      "id": "2d04d704-458a-41dd-b792-6a91ae2ae7b2",
+      "name": "Code"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "e8f8ee5e-5f08-4f72-805f-613713f2ebb8",
+              "leftValue": "={{ $json.category.toLowerCase() }}",
+              "rightValue": "important",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -112,
+        48
+      ],
+      "id": "a4996710-5ced-4d2b-81f4-c3b42f9fccd6",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "operation": "reply",
+        "messageId": "={{ $('Gmail Trigger').item.json.id }}",
+        "emailType": "text",
+        "message": "={{ $json.replyBody }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        144,
+        -48
+      ],
+      "id": "0b262a5d-ef91-4430-90c1-c3284af1e386",
+      "name": "Reply to a message",
+      "webhookId": "4493a6f8-cb78-44c7-bb7f-ffe78f9f9b81",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "gAYHLjsjJBwJFyp9",
+          "name": "Gmail account 167"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Gmail Trigger": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Code",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Reply to a message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "4c59de22-665e-4c21-85f2-1f3c860e547e",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "8aa7a6b00703250dcbefcb510baac06d8bd02203b4f9c49a6f275db8e3adde34"
+  },
+  "id": "8ixYirBZX92nuTrz",
+  "tags": []
+}

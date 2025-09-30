@@ -1,0 +1,386 @@
+{
+  "name": "UGC Nano Banana",
+  "nodes": [
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://fal.run/fal-ai/gemini-25-flash-image/edit",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Key {{ $('Setup').first().json.FalAPIKey }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"prompt\": \"{{ $json.prompt }}\",\n  \"image_urls\": [\n\"https://drive.google.com/uc?export=view&id={{ $('Google Drive Trigger').first().json.id }}\"\n  ],\n  \"num_images\": 1,\n  \"output_format\": \"jpeg\",\n  \"sync_mode\": false\n} ",
+        "options": {}
+      },
+      "id": "4d109813-8929-43f9-8260-eaf981e5d21f",
+      "name": "Generate Image",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [
+        1344,
+        816
+      ],
+      "retryOnFail": false,
+      "typeVersion": 4.2,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "triggerOn": "specificFolder",
+        "folderToWatch": {
+          "__rl": true,
+          "mode": "list",
+          "value": "",
+          "cachedResultUrl": "https://drive.google.com/drive/folders/",
+          "cachedResultName": "UGC"
+        },
+        "event": "fileCreated",
+        "options": {}
+      },
+      "id": "0b837f48-b7a6-4e55-a2ec-56d71ff6fe6f",
+      "name": "Google Drive Trigger",
+      "type": "n8n-nodes-base.googleDriveTrigger",
+      "position": [
+        96,
+        816
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "99eddadb-0930-4172-816d-0c2e82e1b096",
+      "name": "Loop Over Items",
+      "type": "n8n-nodes-base.splitInBatches",
+      "position": [
+        1120,
+        816
+      ],
+      "typeVersion": 3
+    },
+    {
+      "parameters": {
+        "name": "={{ $('Google Drive Trigger').first().json.name.match(/^[^.]+/)[0].concat($('Loop Over Items').item.json.prompt_number) }}",
+        "driveId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "My Drive"
+        },
+        "folderId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "",
+          "cachedResultUrl": "https://drive.google.com/drive/folders/",
+          "cachedResultName": "UGC"
+        },
+        "options": {}
+      },
+      "id": "9b810f55-3859-45e0-955c-3969a791bd49",
+      "name": "Upload file",
+      "type": "n8n-nodes-base.googleDrive",
+      "position": [
+        1792,
+        888
+      ],
+      "typeVersion": 3
+    },
+    {
+      "parameters": {
+        "jsonSchemaExample": "{\n      \"ugc_prompts\": [\n        {\n          \"prompt_number\": \"integer\",\n          \"prompt\": \"string\"\n        }\n      ]\n}\n"
+      },
+      "id": "671aa4e4-ba9d-45d4-8def-bbc8b2a842c1",
+      "name": "Structured Output Parser",
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "position": [
+        680,
+        1040
+      ],
+      "typeVersion": 1.3
+    },
+    {
+      "parameters": {},
+      "id": "9810d654-28e9-4f1b-996d-d35e53fb304b",
+      "name": "No Operation, do nothing",
+      "type": "n8n-nodes-base.noOp",
+      "position": [
+        1344,
+        624
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.images[0].url }}",
+        "options": {}
+      },
+      "id": "88fa178a-ec24-4092-b9ce-4a74ef5003d2",
+      "name": "Retrieve Image",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [
+        1568,
+        816
+      ],
+      "typeVersion": 4.2
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "",
+              "name": "FalAPIKey",
+              "type": "string",
+              "value": "[YOUR_API_KEY]"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "2c9861b7-f279-4b80-849c-4136a3451a91",
+      "name": "Setup",
+      "type": "n8n-nodes-base.set",
+      "position": [
+        320,
+        816
+      ],
+      "typeVersion": 3.4
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "You are an expert content creator specializing in UGC (User-Generated Content) style marketing images. ",
+        "hasOutputParser": true,
+        "messages": {
+          "messageValues": [
+            {
+              "type": "HumanMessagePromptTemplate",
+              "message": "=The product the Promote is a {{ $('Google Drive Trigger').item.json.name.match(/^[^.]+/)[0] }}\n\nYour task is to generate 50 creative, diverse, and realistic situations prompts for an image-to-image generation model. Each prompt should describe a different situation or scenario where the product is being used. \n\nRequirements for each prompt:\n1. Specify the environment or setting (e.g., home, office, kitchen).  \n2. Include a human or realistic context interacting with the product (e.g., holding it, using it, displaying it).  \n3. Highlight at least one functionality or feature of the product in the scene.  \n4. Keep the prompts concise (1–2 sentences), vivid, and visually descriptive.  \n5. Maintain diversity: do not repeat the same type of scene. Include different times of day, moods, activities, or locations.\n\nOutput format (JSON array):\n{\n      \"ugc_prompts\": [\n              {\"prompt\": \"First prompt here...\"},\n              {\"prompt\": \"Second prompt here...\"},\n              ...\n              {\"prompt\": \"Fiftieth prompt here...\"}\n                      ]\n}\n\nExample input:  \nProduct: \"Smart Water Bottle\"  \n\nExample output:\n{\n      \"ugc_prompts\": [\n                {\"prompt\": \"A young woman jogging in a park, drinking from the Smart Water Bottle, enjoying cold water on a sunny morning.\"},\n                {\"prompt\": \"A man sitting at his office desk, checking water intake on his Smart Water Bottle synced with his phone.\"},\n                {\"prompt\": \"A family hiking on a trail, each carrying a Smart Water Bottle to stay hydrated.\"},...\n                     ]\n}\n\nDON'T RETURN ANYTHING ELSE THAN THE JSON!"
+            }
+          ]
+        },
+        "batching": {}
+      },
+      "id": "3226de89-58c5-42ee-8b7b-86c16881954b",
+      "name": "Generate Prompts",
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "position": [
+        544,
+        816
+      ],
+      "typeVersion": 1.7
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "output.ugc_prompts",
+        "options": {}
+      },
+      "id": "e0e5700d-d279-4967-8405-70633435c4fc",
+      "name": "Split Out",
+      "type": "n8n-nodes-base.splitOut",
+      "position": [
+        896,
+        816
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "content": "## **Prompts Generation**",
+        "height": 432,
+        "width": 908,
+        "color": 7
+      },
+      "id": "4ad64027-d2be-4995-abcf-1e5c5e36f3e0",
+      "name": "Sticky Note",
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        90,
+        752
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "content": "## **UGC Production**\n",
+        "height": 432,
+        "width": 780,
+        "color": 7
+      },
+      "id": "20d6459f-bd73-4782-be3b-7b2400ba7a6e",
+      "name": "Sticky Note1",
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        1114,
+        616
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        432,
+        1024
+      ],
+      "id": "ed1e6043-c0e5-429f-8a83-af1ab64adbfd",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "0bukAEDwVSFgerpw",
+          "name": "Google Gemini(PaLM) Api account 153"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Setup": {
+      "main": [
+        [
+          {
+            "node": "Generate Prompts",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Out": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upload file": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Image": {
+      "main": [
+        [
+          {
+            "node": "Retrieve Image",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Retrieve Image": {
+      "main": [
+        [
+          {
+            "node": "Upload file",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items": {
+      "main": [
+        [
+          {
+            "node": "No Operation, do nothing",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Generate Image",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Prompts": {
+      "main": [
+        [
+          {
+            "node": "Split Out",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Drive Trigger": {
+      "main": [
+        [
+          {
+            "node": "Setup",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "Generate Prompts",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Generate Prompts",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "342c708b-a9f7-4c1f-bbe3-29c1e9e619d0",
+  "meta": {
+    "instanceId": "8aa7a6b00703250dcbefcb510baac06d8bd02203b4f9c49a6f275db8e3adde34"
+  },
+  "id": "OxA8pvk0AgrjCBvE",
+  "tags": []
+}

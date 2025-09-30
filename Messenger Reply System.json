@@ -1,0 +1,281 @@
+{
+  "name": "Messenger Reply System",
+  "nodes": [
+    {
+      "parameters": {
+        "multipleMethods": true,
+        "path": "fb-webhook",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        -48
+      ],
+      "id": "e8d59cdd-4098-4bff-af24-a61e10c66aa6",
+      "name": "Webhook",
+      "webhookId": "7aa5a3c5-9616-418e-8635-04aaae630b51",
+      "alwaysOutputData": false,
+      "executeOnce": false
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "={{ $json.query['hub.challenge'] }}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        464,
+        -288
+      ],
+      "id": "49461da9-95bb-4366-862d-05c6930a14f6",
+      "name": "Respond to Webhook"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "c5efa0cb-63bc-4b5e-8d26-bf95c73e2190",
+              "leftValue": "={{ $json.query['hub.mode'] }}",
+              "rightValue": "subscribe",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            },
+            {
+              "id": "9d9cccff-2daf-4a1d-8419-b14f239ce1b0",
+              "leftValue": "={{ $json.query['hub.verify_token'] }}",
+              "rightValue": "tokenmahin",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        224,
+        -208
+      ],
+      "id": "f7127273-2eba-4deb-9fd4-e1814b28590e",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "options": {
+          "responseCode": 404
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        464,
+        -128
+      ],
+      "id": "342c595b-d874-4e18-a850-5f6f236a6727",
+      "name": "Respond to Webhook1"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "f6962401-bf07-4419-824f-dd07717e2533",
+              "name": "Sender_ID",
+              "value": "={{ $json.body.entry[0].messaging[0].sender.id }}",
+              "type": "string"
+            },
+            {
+              "id": "833e7066-6de7-4f74-9420-5ece7fa8bf48",
+              "name": "Receiver_ID",
+              "value": "={{ $json.body.entry[0].messaging[0].recipient.id }}",
+              "type": "string"
+            },
+            {
+              "id": "b1283c95-5989-461a-b2b8-71bf1e8df17b",
+              "name": "Message",
+              "value": "={{ $json.body.entry[0].messaging[0].message.text }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        224,
+        96
+      ],
+      "id": "73657885-99af-425f-be36-d2af5127d39e",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=User Message: {{ $json.Message }}\nReply in a human, natural tone. Keep it short and helpful.\n",
+        "options": {
+          "systemMessage": "You are a friendly and helpful assistant for a Facebook page that sells various gadget items through an online store. You handle all customer queries related to products, delivery, and ordering.\n\nDelivery Information:\n– Inside Dhaka City: Delivery charge is ৳70, and delivery is completed within 48 hours (maximum).\n– Outside Dhaka City: Delivery charge is ৳130, and delivery takes 3 to 4 days.\n\nProduct Prices: All product prices are shown with the product image posted on the page. If a customer asks for the price, politely inform them to check the product image or description.\n\nIf a user sends a picture (e.g. for inquiry or product matching), respond with:\n“Thanks for sharing the photo! We’ll let you know shortly.”\n\nLanguage Rule:\n– If the customer messages in Bengali, reply in Bengali.\n– If the customer messages in English, reply in English.\n\ncontact number: +8801111111111\n\nAlways answer in a polite, professional tone. If you're unsure about the answer, reply with:\n“Please wait a moment, our team will get back to you shortly.”\nDo not use any new line or special character. \n"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.2,
+      "position": [
+        448,
+        96
+      ],
+      "id": "692dd5f4-3c1e-4add-b700-de668bee27a6",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        352,
+        288
+      ],
+      "id": "531fec8e-7ff7-4a85-9fa1-0e5c56c959ff",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "0bukAEDwVSFgerpw",
+          "name": "Google Gemini(PaLM) Api account 153"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://graph.facebook.com/v23.0/{{ $('Edit Fields').item.json.Receiver_ID }}/messages",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "access_token",
+              "value": "EAASsAeHQHdcBPlSXZAGbZC9Nwuo9jho9AXQC8sZBAP91p81oMzZCtkO8ijNgUShxlLZA5KLnzZCnsIo6xjB3A072zCKPWkASz1aopYiI7SKslAsGSg2HOymKzef7y00Fgzvf5ZB8pWKwwEYvTNHXEmv8UJ87HLnQ58rKaciuTXP8y01iqdUR6Fsm9fnYrbQLpoOwrZAtSFLOIDnWWXq1ZA59I2l7ZA"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"recipient\": {\n    \"id\": \"{{ $('Edit Fields').item.json.Sender_ID }}\"\n  },\n  \"messaging_type\": \"RESPONSE\",\n  \"message\": {\n    \"text\": \"{{ $json.output }}\"\n  }\n} ",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        800,
+        96
+      ],
+      "id": "ca0d1b30-ff74-4fcd-be84-2740e0fe0eff",
+      "name": "HTTP Request"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond to Webhook1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "57150a63-6fb2-4849-9971-0f7ee889eb22",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "8aa7a6b00703250dcbefcb510baac06d8bd02203b4f9c49a6f275db8e3adde34"
+  },
+  "id": "qgSUhg3FzrYqWNC8",
+  "tags": []
+}

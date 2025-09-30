@@ -1,0 +1,199 @@
+{
+  "name": "Daily Weather Report Agent",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        0
+      ],
+      "id": "11ef6cdf-97ec-43ed-a037-aed0e65f4efa",
+      "name": "Schedule Trigger"
+    },
+    {
+      "parameters": {
+        "url": "http://api.weatherapi.com/v1/current.json",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "key",
+              "value": "b4f066b2d22b46d590d151508250609"
+            },
+            {
+              "name": "q",
+              "value": "dhaka"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        224,
+        0
+      ],
+      "id": "344212ed-3c1c-43f8-9cb2-f2230be30130",
+      "name": "HTTP Request"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.data }}",
+        "messages": {
+          "messageValues": [
+            {
+              "message": "You are a friendly weather assistant. \nYour job is to take structured weather data (temperature, condition, humidity, wind, etc.) \nand create a short, human-readable weather report with appropriate emojis.  \n\nGuidelines:\n- Always mention temperature 🌡️.\n- Use an emoji for the main condition (☀️ sunny, 🌧️ rainy, ⛈️ stormy, ❄️ snowy, 🌫️ foggy, 🌤️ partly cloudy, etc.).\n- Include humidity 💧 and wind 🌬️ if available.\n- Keep responses brief (1–3 sentences) and conversational.\n- Never output raw JSON, only a natural-language weather summary.\n"
+            }
+          ]
+        },
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.7,
+      "position": [
+        720,
+        0
+      ],
+      "id": "78d308af-5748-4b45-8377-d1589b12d4df",
+      "name": "Basic LLM Chain"
+    },
+    {
+      "parameters": {
+        "aggregate": "aggregateAllItemData",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.aggregate",
+      "typeVersion": 1,
+      "position": [
+        432,
+        0
+      ],
+      "id": "fb53ec38-3fb9-409b-9928-9fbcc7347848",
+      "name": "Aggregate"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        688,
+        224
+      ],
+      "id": "c2ab401b-2216-4716-8312-5c5b9485b862",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "0bukAEDwVSFgerpw",
+          "name": "Google Gemini(PaLM) Api account 153"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "5704018511",
+        "text": "={{ $json.text }}",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1072,
+        0
+      ],
+      "id": "b2d6ced7-8982-4f95-8574-38d9d71e88ec",
+      "name": "Send a text message",
+      "webhookId": "d9d28119-da98-4bc6-b6c9-f0614b825b39",
+      "credentials": {
+        "telegramApi": {
+          "id": "MTjjtJGzBBbcIpkd",
+          "name": "Telegram account 120"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Aggregate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aggregate": {
+      "main": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Basic LLM Chain": {
+      "main": [
+        [
+          {
+            "node": "Send a text message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "3b362868-aef9-4414-b41a-21de5f85bb16",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "8aa7a6b00703250dcbefcb510baac06d8bd02203b4f9c49a6f275db8e3adde34"
+  },
+  "id": "oA2gLpQ6buAlFWIG",
+  "tags": []
+}
